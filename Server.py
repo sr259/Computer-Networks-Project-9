@@ -2,7 +2,7 @@ import socket
 from  _thread import *
 import sys
 
-server = "10.176.2.216"
+server = "10.178.2.14"
 port = 5555
 
 # Create a socket object
