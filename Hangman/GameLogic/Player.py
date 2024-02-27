@@ -1,15 +1,23 @@
 class Player:
     def __init__(self, name):
         self.name = name
-        self.lives = 2
+        self.lives = 6
         self.guesses = []
 
     def guess(self, letter):
-        if letter not in self.guesses:
-            self.guesses.append(letter)
-            return True
+        if len(letter) == 1:
+
+            if letter not in self.guesses:
+                self.guesses.append(letter)
+                return True
+            else:
+                return False
         else:
-            return False
+            split_word = list(letter)
+            for i in range(len(split_word)):
+                if split_word[i] not in self.guesses:
+                    self.guesses.append(split_word[i])
+            return True
 
     def get_lives(self):
         return self.lives

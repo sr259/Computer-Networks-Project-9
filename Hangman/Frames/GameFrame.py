@@ -23,16 +23,23 @@ class GameFrame(tk.Frame):
 
         self.guessArea = tk.Label(self, font=("Comic Sans", 18))
         self.guessArea.pack(pady=10)
+
+        #Makes sure that the input is a single letter, needs to be changed so the player can guess the word
         def validate_input(char):
             return char.isalpha() and len(char) == 1
-
         vcmd = master.register(validate_input)
         self.guessEntry = tk.Entry(self, validate="key", validatecommand=(vcmd, "%S"))
         self.guessEntry.pack(pady=10)
+
         self.livesLabel = tk.Label(self, font=("Comic Sans", 18))
         self.livesLabel.pack(pady=10)
+
         self.guessButton = tk.Button(self, text="Guess", command=self.guessButtonCommand)
         self.guessButton.pack(pady=10)
+
+        self.guessedLetters = tk.Label(self, font=("Comic Sans", 18))
+        self.guessedLetters.pack(pady=10)
+
         self.establishBoard()
     
     def establishBoard(self):
@@ -51,6 +58,7 @@ class GameFrame(tk.Frame):
         self.game.guess(self.guessEntry.get(), self.game.player1, self.game.player1Turn)
         self.updateWord()
         self.updateLives()
+        self.updateGuessedLetters()
         self.guessEntry.delete(0, 'end')
         if self.determineGameOver():
             self.gameOver(self.getWinner())        
@@ -60,6 +68,7 @@ class GameFrame(tk.Frame):
         self.guessEntry.config(state="disabled")
         self.livesLabel.config(text="Game Over, " + winner + " wins!")
         self.backButton.config(text="Return to Lobby", command=self.clearGameAndReturn)
+        self.guessArea.config(text=self.game.get_word())
         
     def getWinner(self):
         if self.game.get_lives() == (0,0):
@@ -80,3 +89,9 @@ class GameFrame(tk.Frame):
         self.master.resetGameFrame()
         self.master.showLobbyFrame()
 
+    def updateGuessedLetters(self):
+        guessed_letters = ""
+        for i in range(0,2):
+            for letter in self.game.get_guesses()[i]:
+                guessed_letters += letter + " "
+        self.guessedLetters.config(text="Guessed Letters: " + guessed_letters)
