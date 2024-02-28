@@ -3,7 +3,6 @@ import tkinter as tk
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-print(sys.path)
 from Frames.MainFrame import MainFrame
 from Frames.LobbyFrame import LobbyFrame
 from Frames.GameFrame import GameFrame

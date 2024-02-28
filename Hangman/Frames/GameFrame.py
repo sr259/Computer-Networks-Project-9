@@ -2,8 +2,6 @@ import tkinter as tk
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-print(sys.path)
-
 from GameLogic import Player
 from GameLogic import Game
 
@@ -24,9 +22,9 @@ class GameFrame(tk.Frame):
         self.guessArea = tk.Label(self, font=("Comic Sans", 18))
         self.guessArea.pack(pady=10)
 
-        #Makes sure that the input is a single letter, needs to be changed so the player can guess the word
+        #Makes sure that the input is a single letter, needs to be changed so the player can guess the
         def validate_input(char):
-            return char.isalpha() and len(char) == 1
+            return (char.isalpha())
         vcmd = master.register(validate_input)
         self.guessEntry = tk.Entry(self, validate="key", validatecommand=(vcmd, "%S"))
         self.guessEntry.pack(pady=10)
@@ -71,7 +69,12 @@ class GameFrame(tk.Frame):
         self.guessArea.config(text=self.game.get_word())
         
     def getWinner(self):
-        if self.game.get_lives() == (0,0):
+        if self.game.get_guessed() == list(self.game.get_word()):
+            if self.game.player1Turn:
+                return self.game.player1.get_name()
+            else:
+                return self.game.player2.get_name()
+        elif self.game.get_lives() == (0,0):
             return "No one"
         elif self.game.player1.get_lives() == 0:
             return self.game.player2.get_name()
@@ -85,6 +88,7 @@ class GameFrame(tk.Frame):
             return True
         else:
             return False
+    
     def clearGameAndReturn(self):
         self.master.resetGameFrame()
         self.master.showLobbyFrame()

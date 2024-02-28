@@ -1,6 +1,5 @@
 import random
 
-
 class WordPicker:
     def __init__(self):
         file_path = "Hangman/GameLogic/WordBank.txt"
