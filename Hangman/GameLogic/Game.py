@@ -7,31 +7,35 @@ from GameLogic import WordPicker
 class Game:
     def __init__(self, player1, player2):
         wordpicker = WordPicker.WordPicker()
-        self.word = "banana"
-        #self.word = wordpicker.pick_word()
+        #self.word = "banana"
+        self.word = wordpicker.pick_word()
         self.guessed = ["_"] * len(self.word)
         self.player1 = player1
         self.player2 = player2
         self.player1Turn = True
 
-    def guess(self, letter, player, turn):
-        letter = letter.lower()
+    #input is the guess, Player is the player object, and turn is a boolean ( true for player 1, false for player 2)
+    def guess(self, input, turn):
+        input = input.lower()
+
+
+        #If the input input is not a single letter or if it is not the same length of the word, it is invalid
+        if len(input) > 1 and len(input) != len(self.word):
+            print("Invalid input")
+            return self.guessed
+        
         #Player gets to keep guessing if other player has no lives left
-        if player.get_lives() == 0:
-            self.switch_turn()
         if turn:
             player = self.player1
         else:
             player = self.player2
 
-        #If the letter input is not a single letter, it is invalid
-        if len(letter) > 1 and len(letter) != len(self.word):
-            print("Invalid input")
-            return self.guessed
-        
-        #If the letter input is the word, the player wins
-        if len(letter) == len(self.word):
-            if letter == self.word:
+        if player.get_lives() == 0:
+            self.switch_turn()
+
+        #If the input is the word, the player wins
+        if len(input) == len(self.word):
+            if input == self.word:
                 self.guessed = list(self.word)
                 return self.guessed
             else:
@@ -45,13 +49,12 @@ class Game:
                 self.switch_turn()
                 return self.guessed
         
-        #Letter is the guess, Player is the player object, and turn is a boolean ( true for player 1, false for player 2)
-        if letter not in self.get_guesses()[0] and letter not in self.get_guesses()[1]:
-            if player.guess(letter):
-                if letter in self.word:
-                    indices = [i for i, l in enumerate(self.word) if l == letter]
+        if input not in self.get_guesses()[0] and input not in self.get_guesses()[1]:
+            if player.guess(input):
+                if input in self.word:
+                    indices = [i for i, l in enumerate(self.word) if l == input]
                     for index in indices:
-                        self.guessed[index] = letter
+                        self.guessed[index] = input
                 else:
                     player.lose_life()
             self.switch_turn()

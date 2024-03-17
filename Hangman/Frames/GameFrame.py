@@ -53,7 +53,7 @@ class GameFrame(tk.Frame):
         self.livesLabel.config(text="Lives: " + str(self.game.get_lives()))
 
     def guessButtonCommand(self):
-        self.game.guess(self.guessEntry.get(), self.game.player1, self.game.player1Turn)
+        self.game.guess(self.guessEntry.get(), self.game.player1Turn)
         self.updateWord()
         self.updateLives()
         self.updateGuessedLetters()
@@ -84,7 +84,7 @@ class GameFrame(tk.Frame):
     def determineGameOver(self):
         if self.game.get_guessed() == list(self.game.get_word()):
             return True
-        elif self.game.get_lives() == (0,0):
+        elif self.game.get_lives() == (0,0) or self.game.player1.get_lives() < 0 or self.game.player2.get_lives() < 0:
             return True
         else:
             return False
