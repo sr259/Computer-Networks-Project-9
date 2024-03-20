@@ -4,14 +4,18 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from GameLogic import Player
 from GameLogic import Game
+from Frames import Man
 
 class GameFrame(tk.Frame):
     def __init__(self, master):
-
+        self.canvas1 = tk.Canvas(master, width=200, height=200)
+        self.canvas2 = tk.Canvas(master, width=200, height=200)
+        self.player1Man = Man.Man(self.canvas1, "blue", .6)
+        self.player2Man = Man.Man(self.canvas2, "red", .6)
         #Potentially have it so Player 1 and Player 2 are passed in from lobby as parameters
         self.player1 = Player.Player("Player 1")
         self.player2 = Player.Player("Player 2")
-
+        self.playerMaxLives = self.player1.get_lives()
         self.game = Game.Game(self.player1, self.player2)
 
         super().__init__(master)
@@ -37,19 +41,33 @@ class GameFrame(tk.Frame):
 
         self.guessedLetters = tk.Label(self, font=("Comic Sans", 18))
         self.guessedLetters.pack(pady=10)
-
-        self.establishBoard()
     
+    def instantiateMen(self):
+        self.canvas1 = tk.Canvas(self.master, width=100, height=150)
+        self.canvas2 = tk.Canvas(self.master, width=100, height=150)
+        self.canvas1.pack(side=tk.LEFT, padx=10)
+        self.canvas2.pack(side=tk.RIGHT, padx=10)
+        self.player1Man = Man.Man(self.canvas1, "blue", .6)
+        self.player2Man = Man.Man(self.canvas2, "red", .6)
+    
+    def hideMen(self):
+        self.player1Man.clear()
+        self.player2Man.clear()
+        self.canvas1.pack_forget()
+        self.canvas2.pack_forget()
+
     def establishBoard(self):
         self.dashes = self.game.get_guessed()
         self.updateWord()
         self.updateLives()
-
+        
     def updateWord(self):
         self.dashes = self.game.get_guessed()
         self.guessArea.config(text=self.dashes)
 
     def updateLives(self):
+        self.player1Man.draw(self.playerMaxLives - self.game.get_lives()[0])
+        self.player2Man.draw(self.playerMaxLives - self.game.get_lives()[1])
         self.livesLabel.config(text="Lives: " + str(self.game.get_lives()))
 
     def guessButtonCommand(self):
@@ -71,9 +89,9 @@ class GameFrame(tk.Frame):
     def getWinner(self):
         if self.game.get_guessed() == list(self.game.get_word()):
             if self.game.player1Turn:
-                return self.game.player1.get_name()
-            else:
                 return self.game.player2.get_name()
+            else:
+                return self.game.player1.get_name()
         elif self.game.get_lives() == (0,0):
             return "No one"
         elif self.game.player1.get_lives() == 0:
@@ -90,6 +108,7 @@ class GameFrame(tk.Frame):
             return False
     
     def clearGameAndReturn(self):
+        self.hideMen()
         self.master.resetGameFrame()
         self.master.showLobbyFrame()
 

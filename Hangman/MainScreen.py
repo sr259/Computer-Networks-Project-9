@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Frames.MainFrame import MainFrame
 from Frames.LobbyFrame import LobbyFrame
 from Frames.GameFrame import GameFrame
+from Frames.Man import Man
 from GameLogic import Game
 from GameLogic import Player
 
@@ -37,9 +38,11 @@ class MainScreen(tk.Tk):
         self.main_frame.pack_forget()
         self.lobby_frame.pack(fill='both', expand=True)
         self.game_frame.pack_forget()
+        self.game_frame.hideMen()
         print("Switching to Lobby Frame")
     
     def showGameFrame(self):
+        self.game_frame.instantiateMen()
         self.main_frame.pack_forget()
         self.lobby_frame.pack_forget()
         self.game_frame.pack(fill='both', expand=True)

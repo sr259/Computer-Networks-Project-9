@@ -7,8 +7,8 @@ from GameLogic import WordPicker
 class Game:
     def __init__(self, player1, player2):
         wordpicker = WordPicker.WordPicker()
-        #self.word = "banana"
-        self.word = wordpicker.pick_word()
+        self.word = "banana"
+        #self.word = wordpicker.pick_word()
         self.guessed = ["_"] * len(self.word)
         self.player1 = player1
         self.player2 = player2
@@ -20,7 +20,7 @@ class Game:
 
 
         #If the input input is not a single letter or if it is not the same length of the word, it is invalid
-        if len(input) > 1 and len(input) != len(self.word):
+        if len(input) > 1 and len(input) != len(self.word) or not input.isalpha() or input == "":
             print("Invalid input")
             return self.guessed
         
