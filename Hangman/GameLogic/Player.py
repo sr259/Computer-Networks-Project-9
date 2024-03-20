@@ -1,7 +1,7 @@
 class Player:
     def __init__(self, name):
         self.name = name
-        self.lives = 1
+        self.lives = 6
         self.guesses = []
 
     def guess(self, letter):
