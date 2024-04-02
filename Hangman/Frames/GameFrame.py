@@ -41,6 +41,7 @@ class GameFrame(tk.Frame):
 
         self.guessedLetters = tk.Label(self, font=("Comic Sans", 18))
         self.guessedLetters.pack(pady=10)
+        self.establishBoard()
     
     def instantiateMen(self):
         self.canvas1 = tk.Canvas(self.master, width=100, height=150)
