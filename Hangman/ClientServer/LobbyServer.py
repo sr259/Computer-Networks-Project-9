@@ -7,6 +7,7 @@ import functools
 import threading
 import logging
 import time
+from GameLogic import WordPicker, Player, Game
 
 logging.basicConfig(level=logging.INFO, format = "%(asctime)s: %(message)s", stream=sys.stdout)
 class LobbyServer:
@@ -86,19 +87,31 @@ class LobbyServer:
             self.clients[client_name] = client_socket
             self.lobby.append(client_name)
             # Notify other clients about the new member
+            self.sendLobbyUpdate()
             self.broadcast(f"{client_name} joined the lobby.\n")            
             while True:
                 try:
                     logging.info(f"Waiting for message from {client_name}...")
                     message = ''
-                    message = client_socket.recv(2048).decode("utf-8")
+                    message = str(client_socket.recv(2048).decode("utf-8")).strip()
                     logging.info(f"{client_name}: {message}")
-                    if str(message).strip() == "GET_PLAYERS":
+                    if message == "GET_PLAYERS":
                         # Logic to get the list of players from the lobby           
                         players = self.lobby
                         # Send the list of players back to the client
-                        client_socket.sendall(("GET_PLAYERS: " + ",".join(players)).encode("utf-8"))
+                        client_socket.sendall(("GET_PLAYERS: " + ", ".join(players)).encode("utf-8"))
                         logging.info(f"Sent the list of players to {client_name}.")
+                    if message.startswith("CONNECT_TO_GAME: ") and len(self.lobby) > 1:
+                        # Logic to connect two players to a game
+                        players = message.split(": ")[1].split(", ")
+                        logging.info(f"Connecting {players[0]} and {players[1]} to a game.")
+                        # Notify the clients about the game starting
+                        self.lobby.remove(players[0])
+                        self.lobby.remove(players[1])
+                        self.sendLobbyUpdate()
+
+                        self.broadcast(f"GAME_STARTED: {players[0]}, {players[1]}\n")
+                        self.startGame(players[0], players[1])
                     time.sleep(1)
                     if not message:
                         # If no data is received, client has disconnected
@@ -117,7 +130,27 @@ class LobbyServer:
                 del self.clients[client_name]
                 self.lobby.remove(client_name)
                 # Notify other clients about the member leaving
-                self.broadcast(f"{client_name} has left the lobby.\n")            
+                self.broadcast(f"{client_name} has left the lobby.\n")
+                self.sendLobbyUpdate()
+    def sendLobbyUpdate(self):
+        # Send the updated list of players to all clients
+        players = self.lobby
+        for client_name, client_socket in self.clients.items():
+            client_socket.sendall(("GET_PLAYERS: " + ", ".join(players)).encode("utf-8"))
+            logging.info(f"Sent the list of players to {client_name}.")
+
+    def startGame(self, player1, player2):
+        # Start a game between two players
+        picker = WordPicker.WordPicker()
+        word = picker.pick_word()
+        player1 = Player.Player(player1)
+        player2 = Player.Player(player2)
+        game = Game.Game(player1, player2, word)
+        player1_socket = self.clients[player1.get_name()]
+        player2_socket = self.clients[player2.get_name()]
+        pass        
+
+
 
 if __name__ == "__main__":
     server = LobbyServer()

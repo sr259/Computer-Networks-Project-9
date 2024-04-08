@@ -6,8 +6,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 #from ...Client import Client
 class Player:
     def __init__(self, name):
-        self.SERVER_PORT = 5555
-        self.SERVER_HOST = None
         self.name = name
         self.lives = 6
         self.guesses = []    

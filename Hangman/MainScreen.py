@@ -17,10 +17,10 @@ class MainScreen(tk.Tk):
         super().__init__()
         self.name = "Player"
         self.players = None
-        self.client = Client.Client(Player.Player(self.name))
         self.main_frame = MainFrame(self)
         self.lobby_frame = LobbyFrame(self)
         self.game_frame = GameFrame(self)
+        self.client = Client.Client(Player.Player(self.name), self.lobby_frame.playerList)
 
         self.main_frame.joinLobbyButton['command'] = self.showLobbyFrame
         self.lobby_frame.backButton['command'] = self.showMainframe
@@ -35,7 +35,7 @@ class MainScreen(tk.Tk):
     def showMainframe(self):
         if self.client.client_socket:
             self.client.close_connection()
-        self.client = Client.Client(Player.Player(self.name))
+        self.client = Client.Client(Player.Player(self.name),self.lobby_frame.playerList)
         self.main_frame.pack(fill='both', expand=True)
         self.lobby_frame.pack_forget()
         self.game_frame.pack_forget()
@@ -49,6 +49,7 @@ class MainScreen(tk.Tk):
     
     def showGameFrame(self):
         self.game_frame.instantiateMen()
+        self.joinGameWithPlayer()
         self.main_frame.pack_forget()
         self.lobby_frame.pack_forget()
         self.game_frame.pack(fill='both', expand=True)
@@ -63,11 +64,11 @@ class MainScreen(tk.Tk):
         self.client.changeName(self.name)
         self.client.connect_to_server()
         time.sleep(4)
-        self.client.send_message("GET_PLAYERS")
-        while self.client.event_queue.empty():
-            pass
-        self.players = self.client.event_queue.get()
-
+    
+    def joinGameWithPlayer(self):
+        self.client.send_message("CONNECT_TO_GAME: " + self.client.player.name + ", " + self.lobby_frame.playerList.get(tk.ACTIVE))
+        returnedStatement = self.client.wait_for_message()
+        
 if __name__ == "__main__":
     app = MainScreen()
     app.mainloop()

@@ -1,8 +1,11 @@
 import random
-
+import os
 class WordPicker:
     def __init__(self):
-        file_path = "Hangman/GameLogic/WordBank.txt"
+        # Get the directory of the script
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        file_path = os.path.join(script_dir, "WordBank.txt")
+        
         with open(file_path, 'r') as file:
             # Read the content and split into words
             content = file.read()

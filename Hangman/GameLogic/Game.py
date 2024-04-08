@@ -5,9 +5,9 @@ from GameLogic import Player
 from GameLogic import WordPicker
 
 class Game:
-    def __init__(self, player1, player2):
-        wordpicker = WordPicker.WordPicker()
-        self.word = "banana"
+    def __init__(self, player1, player2, word):
+        #wordpicker = WordPicker.WordPicker()
+        self.word = word
         #self.word = wordpicker.pick_word()
         self.guessed = ["_"] * len(self.word)
         self.player1 = player1
