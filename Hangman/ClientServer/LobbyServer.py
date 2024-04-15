@@ -7,6 +7,9 @@ import functools
 import threading
 import logging
 import time
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from GameLogic import WordPicker, Player, Game
 
 logging.basicConfig(level=logging.INFO, format = "%(asctime)s: %(message)s", stream=sys.stdout)
@@ -19,6 +22,7 @@ class LobbyServer:
         self.clients = {}  # Dictionary to map client names to their connections
         self.serversocket = None
         self.signal_handler = None
+        self.turn = None
 
     def run(self):    
         # Create a socket object
@@ -91,28 +95,30 @@ class LobbyServer:
             self.broadcast(f"{client_name} joined the lobby.\n")            
             while True:
                 try:
-                    logging.info(f"Waiting for message from {client_name}...")
+                    # logging.info(f"Waiting for message from {client_name}...")
                     message = ''
                     message = str(client_socket.recv(2048).decode("utf-8")).strip()
-                    logging.info(f"{client_name}: {message}")
+                    # logging.info(f"{client_name}: {message}")
                     if message == "GET_PLAYERS":
                         # Logic to get the list of players from the lobby           
                         players = self.lobby
                         # Send the list of players back to the client
                         client_socket.sendall(("GET_PLAYERS: " + ", ".join(players)).encode("utf-8"))
-                        logging.info(f"Sent the list of players to {client_name}.")
-                    if message.startswith("CONNECT_TO_GAME: ") and len(self.lobby) > 1:
+                        # logging.info(f"Sent the list of players to {client_name}.")
+                    if message.startswith("CONNECT_TO_GAME: "):
                         # Logic to connect two players to a game
                         players = message.split(": ")[1].split(", ")
                         logging.info(f"Connecting {players[0]} and {players[1]} to a game.")
                         # Notify the clients about the game starting
+                        player1_socket = self.clients[players[0]]
+                        player2_socket = self.clients[players[1]]
+                        player1_socket.sendall(f"GAME_STARTED: {players[0]}, {players[1]}".encode("utf-8"))
+                        player2_socket.sendall(f"GAME_STARTED: {players[0]}, {players[1]}".encode("utf-8"))
+                        time.sleep(3)
+                        self.startGame(players[0], players[1])
                         self.lobby.remove(players[0])
                         self.lobby.remove(players[1])
                         self.sendLobbyUpdate()
-
-                        self.broadcast(f"GAME_STARTED: {players[0]}, {players[1]}\n")
-                        self.startGame(players[0], players[1])
-                    time.sleep(1)
                     if not message:
                         # If no data is received, client has disconnected
                         logging.info(f"Client {client_name} disconnected.")
@@ -120,6 +126,7 @@ class LobbyServer:
                 except Exception as e:
                     # Handle exceptions such as client disconnecting abruptly
                     logging.info(f"{client_name} has left the lobby, inside while loop. {e}")
+                    self.serversocket.close()
                     break
         except Exception as e:
             logging.error(f"Error handling client: {e}")
@@ -137,18 +144,50 @@ class LobbyServer:
         players = self.lobby
         for client_name, client_socket in self.clients.items():
             client_socket.sendall(("GET_PLAYERS: " + ", ".join(players)).encode("utf-8"))
-            logging.info(f"Sent the list of players to {client_name}.")
+            # logging.info(f"Sent the list of players to {client_name}.")
 
-    def startGame(self, player1, player2):
+    def startGame(self, name1, name2):
         # Start a game between two players
         picker = WordPicker.WordPicker()
-        word = picker.pick_word()
-        player1 = Player.Player(player1)
-        player2 = Player.Player(player2)
+        #word = picker.pick_word()
+        word = "banana"
+        player1_socket = self.clients[name1]
+        player2_socket = self.clients[name2]
+        player1 = Player.Player(name1, player1_socket)
+        player2 = Player.Player(name2, player2_socket)
         game = Game.Game(player1, player2, word)
-        player1_socket = self.clients[player1.get_name()]
-        player2_socket = self.clients[player2.get_name()]
-        pass        
+        player1_socket.sendall(f"WORD: {word}".encode("utf-8"))
+        player2_socket.sendall(f"WORD: {word}".encode("utf-8"))
+        time.sleep(3)
+        while True:
+            try:
+                player1_socket.sendall(f"LIVES: {player1.get_lives()}, {player2.get_lives()}".encode("utf-8"))
+                player2_socket.sendall(f"LIVES: {player1.get_lives()}, {player2.get_lives()}".encode("utf-8"))
+                
+                player = game.determineTurn()
+                socket = player.get_socket()
+                message = socket.recv(2048).decode("utf-8")
+                if message.startswith("GUESS: "):
+                    message = message.split(": ")[1]
+                    guessed = game.guess(player, message)
+                    isOver = game.determineGameOver()
+                    if isOver:
+                        winner = game.getWinner()
+                        player1_socket.sendall(f"GAME_OVER: {winner.get_name()}".encode("utf-8"))
+                        player2_socket.sendall(f"GAME_OVER: {winner.get_name()}".encode("utf-8"))
+                        break
+                    guessed = "".join(guessed)
+                    logging.info(f"{player.get_name()}'s Guess: {message}")
+                    time.sleep(3)
+                    player1_socket.sendall(f"GUESSED: {guessed}, {message}".encode("utf-8"))
+                    player2_socket.sendall(f"GUESSED: {guessed}, {message}".encode("utf-8"))
+                if not message:
+                    break
+            except Exception as e:
+                logging.error(f"Error in game: {e}")
+                break
+        #logging.info(f"Game started between {player1.get_name()} and {player2.get_name()}.")
+
 
 
 

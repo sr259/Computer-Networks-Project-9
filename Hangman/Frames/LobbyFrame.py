@@ -24,7 +24,7 @@ class LobbyFrame(tk.Frame):
 
     def on_player_select(self, event=None):
         selected_index = self.playerList.curselection()
-        if selected_index:
+        if selected_index: 
             selected_player = self.playerList.get(selected_index[0])  # Get the selected player
             if selected_player != self.master.client.player.get_name():
                 # Check if selected player is not the client's own name
@@ -34,5 +34,6 @@ class LobbyFrame(tk.Frame):
                 self.joinGameButton.config(state=tk.DISABLED)
         else:
             self.joinGameButton.config(state=tk.DISABLED)
+    
     
     

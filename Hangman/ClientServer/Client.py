@@ -2,6 +2,8 @@ import socket
 import threading
 import sys
 import os
+import time
+import traceback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import logging
 import queue
@@ -12,15 +14,24 @@ logging.basicConfig(level=logging.INFO, format = "%(asctime)s: %(message)s", str
 
 
 class Client:
-    def __init__(self, player, playerList, server_port=5550):
+    def __init__(self, player, main = None, lobby = None, game = None, server_port=5550):
         self.SERVER_HOST = self.get_server_ip_address()
         self.SERVER_PORT = server_port
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.player = player
         self.players = []
+        self.gameLobby = []
         self.isConnected = False
-        self.event_queue = queue.Queue()
-        self.playerList = playerList
+        self.isInGame = False
+        # self.event_queue = queue.Queue()
+        self.mainFrame = main
+        self.lobbyFrame = lobby
+        self.gameFrame = game
+        self.word = ""
+        self.guessed = []
+        self.turn = False
+        self.lives = []
+        
 
     def get_server_ip_address(self):
         try:
@@ -56,6 +67,7 @@ class Client:
     def receive_message(self):
         try:
             while self.isConnected:
+                logging.info("Waiting for message...")
                 message = self.client_socket.recv(2048).decode("utf-8")
                 if message.startswith("GET_PLAYERS: "):
                     logging.info("Getting players")
@@ -63,13 +75,41 @@ class Client:
                     self.updatePlayerList()
                 elif message.startswith("GAME_STARTED: "):
                     logging.info("Game started")
-                    self.event_queue.put(message)
+                    self.gameLobby = message.split(": ")[1].split(", ")
+                    logging.info(f"Players in game: {self.gameLobby}")
+                    logging.info("My name: " + self.player.get_name())
+                    self.lobbyFrame.master.showGameFrame()
+                    #self.event_queue.put(message)
+                    self.isInGame = True
+                    if self.player.get_name() == self.gameLobby[0]:
+                        self.turn = True
+                    else:
+                        self.turn = False
+                elif message.startswith("WORD: "):
+                    self.word = message.split(": ")[1]
+                    logging.info(f"Word: {self.word}")
+                elif message.startswith("GUESSED: "):
+                    stringForm = message.split(": ")[1].split(", ")
+                    self.guessed = list(stringForm[0])
+                    self.addToGuesses(stringForm[1])
+                    self.gameFrame.establishBoard()
+                    logging.info(f"Guessed: {self.guessed}")
+                    self.turn = not self.turn
+                elif message.startswith("LIVES: "):
+                    asString = message.split(": ")[1].split(", ")
+                    self.lives = [int(asString[0]), int(asString[1])]
+                    logging.info(f"Lives: {self.lives}")
+                    self.gameFrame.updateLives()
+                elif message.startswith("GAME_OVER: "):
+                    winner = message.split(": ")[1]
+                    logging.info(f"Game over. Winner: {winner}")
+                    self.gameFrame.gameOver(winner)
         except KeyboardInterrupt:
             logging.info("Closing connection...")
             self.client_socket.close()
             self.isConnected = False
         except Exception as e:
-            logging.error(f"Error receiving message: {e}")
+            logging.error(f"Error receiving message: {e}\n{traceback.format_exc()}")
     
     def send_message(self, message):
         try:
@@ -79,12 +119,15 @@ class Client:
             logging.error(f"Error sending message: {e}")
             self.client_socket.close()
             self.isConnected = False
+    
     def changeName(self, newName):
         self.player.name = newName
-    def wait_for_message(self):
-        while self.event_queue.empty():
-            pass
-        return self.event_queue.get()
+    
+    # def wait_for_message(self):
+    #     while self.event_queue.empty():
+    #         pass
+    #     return self.event_queue.get()
+    
     def close_connection(self):
         try:
             logging.info("Closing connection...")
@@ -95,9 +138,15 @@ class Client:
             self.isConnected = False
 
     def updatePlayerList(self):
-        self.playerList.delete(0, tk.END)
+        self.lobbyFrame.playerList.delete(0, tk.END)
         for player in self.players:
-            self.playerList.insert(tk.END, player)
+            self.lobbyFrame.playerList.insert(tk.END, player)
+
+    def addToGuesses(self, word):
+        for i in word:
+            if i not in self.player.guesses and i != "_":
+                self.player.guesses.append(i)
+            
 
 def main():
     playerList = tk.Listbox()
