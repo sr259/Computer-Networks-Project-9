@@ -25,7 +25,7 @@ class MainScreen(tk.Tk):
         self.main_frame.joinLobbyButton['command'] = self.showLobbyFrame
         self.lobby_frame.backButton['command'] = self.showMainframe
         self.lobby_frame.joinGameButton['command'] = self.joinGameWithPlayer
-        self.game_frame.backButton['command'] = self.showLobbyFrame
+        #self.game_frame.backButton['command'] = self.showMainframe
 
         self.title("Hangman Game")
         self.geometry("600x400")
@@ -39,9 +39,10 @@ class MainScreen(tk.Tk):
         self.main_frame.pack(fill='both', expand=True)
         self.lobby_frame.pack_forget()
         self.game_frame.pack_forget()
+        self.game_frame.hideMen()
+
 
     def showLobbyFrame(self, name= "Player"):
-
         self.main_frame.pack_forget()
         self.instantiateClient()
         self.lobby_frame.pack(fill='both', expand=True)
@@ -63,7 +64,6 @@ class MainScreen(tk.Tk):
     def instantiateClient(self):
         self.client.changeName(self.name)
         self.client.connect_to_server()
-        time.sleep(4)
     
     def joinGameWithPlayer(self):
         self.client.send_message("CONNECT_TO_GAME: " + self.client.player.name + ", " + self.lobby_frame.playerList.get(tk.ACTIVE))  

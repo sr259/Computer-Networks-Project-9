@@ -28,7 +28,6 @@ class LobbyFrame(tk.Frame):
             selected_player = self.playerList.get(selected_index[0])  # Get the selected player
             if selected_player != self.master.client.player.get_name():
                 # Check if selected player is not the client's own name
-                print("Cannot join game with yourself, choose a different player")
                 self.joinGameButton.config(state=tk.NORMAL)
             else:
                 self.joinGameButton.config(state=tk.DISABLED)

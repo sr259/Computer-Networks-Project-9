@@ -9,6 +9,7 @@ from Frames import Man
 
 class GameFrame(tk.Frame):
     def __init__(self, master):
+        self.gameFinished = False
         self.canvas1 = tk.Canvas(master, width=200, height=200)
         self.canvas2 = tk.Canvas(master, width=200, height=200)
         self.player1Man = Man.Man(self.canvas1, "blue", .6)
@@ -16,7 +17,7 @@ class GameFrame(tk.Frame):
 
         super().__init__(master)
         self.label = tk.Label(self, text="Game Screen", font=("Comic Sans", 18))
-        self.backButton = tk.Button(self, text="Back to Lobby")
+        self.backButton = tk.Button(self, text="Back to Home Screen", command=self.backToHome)
         self.backButton.pack(pady=10)
 
         self.guessArea = tk.Label(self, font=("Comic Sans", 18))
@@ -30,7 +31,7 @@ class GameFrame(tk.Frame):
         self.guessEntry.pack(pady=10)
         self.guessEntry.bind("<KeyRelease>", self.validateEntry)
 
-        self.livesLabel = tk.Label(self, font=("Comic Sans", 18))
+        self.livesLabel = tk.Label(self, text = "Loading...", font=("Comic Sans", 18))
         self.livesLabel.pack(pady=10)
 
         self.guessButton = tk.Button(self, text="Guess", command=self.guessButtonCommand, state=tk.DISABLED)
@@ -38,20 +39,24 @@ class GameFrame(tk.Frame):
 
         self.guessedLetters = tk.Label(self, font=("Comic Sans", 18))
         self.guessedLetters.pack(pady=10)
-        exit_button = tk.Button(self, text="Exit", command=self.exit)
-        exit_button.pack(pady=10)
-
-    def exit(self):
-        self.master.client.close_connection()
-        self.quit()
+    
+    def backToHome(self):
+        if self.master.client.gameLobby[0] == self.master.client.player.name:
+            otherName = self.master.client.gameLobby[1]
+        else:
+            otherName = self.master.client.gameLobby[0]
+        self.master.client.send_message(f"QUIT: {self.master.client.player.name}, {otherName}")
+        #self.master.client.close_connection()
+        self.master.showMainframe()
+        self.clearTexts()
 
     def instantiateMen(self):
-        self.canvas1 = tk.Canvas(self.master, width=100, height=150)
-        self.canvas2 = tk.Canvas(self.master, width=100, height=150)
+        self.canvas1 = tk.Canvas(self.master, width=100, height=200)
+        self.canvas2 = tk.Canvas(self.master, width=100, height=200)
         self.canvas1.pack(side=tk.LEFT, padx=10)
         self.canvas2.pack(side=tk.RIGHT, padx=10)
-        self.player1Man = Man.Man(self.canvas1, "blue", .6)
-        self.player2Man = Man.Man(self.canvas2, "red", .6)
+        self.player1Man = Man.Man(self.canvas1, "blue", .6, self.master.client.gameLobby[0])
+        self.player2Man = Man.Man(self.canvas2, "red", .6, self.master.client.gameLobby[1])
     
     def hideMen(self):
         self.player1Man.clear()
@@ -66,8 +71,11 @@ class GameFrame(tk.Frame):
         self.guessEntry.delete(0, 'end')
         
     def updateWord(self):
-        self.dashes = self.master.client.guessed
-        self.guessArea.config(text=self.dashes)
+        if self.master.client.guessed == []:
+            self.guessArea.config(text= "_ "* len(self.master.client.word))
+        else:
+            self.dashes = self.master.client.guessed
+            self.guessArea.config(text=self.dashes)
 
     def updateLives(self):
         self.player1Man.draw(6 - self.master.client.lives[0])
@@ -83,8 +91,16 @@ class GameFrame(tk.Frame):
         self.guessButton.config(state="disabled")
         self.guessEntry.config(state="disabled")
         self.livesLabel.config(text="Game Over, " + winner + " wins!")
-        self.backButton.config(text="Return to Lobby", command=self.clearGameAndReturn)
+        #self.backButton.config(text="Return to Lobby", command=self.master.showMainframe)
         self.guessArea.config(text=self.master.client.word)
+        self.gameFinished = True
+
+    def clearTexts(self):
+        self.guessArea.config(text="")
+        self.livesLabel.config(text="Loading...")
+        self.guessedLetters.config(text="")
+        self.guessEntry.config(state=tk.NORMAL)
+        self.guessEntry.delete(0, 'end')
     
     def clearGameAndReturn(self):
         self.hideMen()
@@ -117,3 +133,10 @@ class GameFrame(tk.Frame):
                 self.guessButton.config(state=tk.DISABLED)
         else:
             self.guessButton.config(state=tk.DISABLED)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    game_frame = GameFrame(root)
+    game_frame.pack()
+    game_frame.establishBoard()
+    root.mainloop()

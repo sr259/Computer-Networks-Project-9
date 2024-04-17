@@ -23,7 +23,6 @@ class Client:
         self.gameLobby = []
         self.isConnected = False
         self.isInGame = False
-        # self.event_queue = queue.Queue()
         self.mainFrame = main
         self.lobbyFrame = lobby
         self.gameFrame = game
@@ -31,6 +30,10 @@ class Client:
         self.guessed = []
         self.turn = False
         self.lives = []
+        self.peer_socket = None
+        self.peer_port = None
+        self.peer_host = None
+        self.peer_name = None
         
 
     def get_server_ip_address(self):
@@ -66,7 +69,7 @@ class Client:
 
     def receive_message(self):
         try:
-            while self.isConnected:
+            while self.isConnected and counter < 4:
                 logging.info("Waiting for message...")
                 message = self.client_socket.recv(2048).decode("utf-8")
                 if message.startswith("GET_PLAYERS: "):
@@ -78,6 +81,7 @@ class Client:
                     self.gameLobby = message.split(": ")[1].split(", ")
                     logging.info(f"Players in game: {self.gameLobby}")
                     logging.info("My name: " + self.player.get_name())
+                    self.gameFrame.clearTexts()
                     self.lobbyFrame.master.showGameFrame()
                     #self.event_queue.put(message)
                     self.isInGame = True
@@ -88,6 +92,7 @@ class Client:
                 elif message.startswith("WORD: "):
                     self.word = message.split(": ")[1]
                     logging.info(f"Word: {self.word}")
+                    self.gameFrame.updateWord()
                 elif message.startswith("GUESSED: "):
                     stringForm = message.split(": ")[1].split(", ")
                     self.guessed = list(stringForm[0])
@@ -103,13 +108,18 @@ class Client:
                 elif message.startswith("GAME_OVER: "):
                     winner = message.split(": ")[1]
                     logging.info(f"Game over. Winner: {winner}")
+                    self.word = ""
+                    self.guessed = []
+                    self.turn = False
+                    self.lives = []
+                    self.isInGame = False
                     self.gameFrame.gameOver(winner)
         except KeyboardInterrupt:
             logging.info("Closing connection...")
             self.client_socket.close()
             self.isConnected = False
         except Exception as e:
-            logging.error(f"Error receiving message: {e}\n{traceback.format_exc()}")
+            logging.error(f"Error receiving message: {e}")
     
     def send_message(self, message):
         try:
@@ -122,11 +132,6 @@ class Client:
     
     def changeName(self, newName):
         self.player.name = newName
-    
-    # def wait_for_message(self):
-    #     while self.event_queue.empty():
-    #         pass
-    #     return self.event_queue.get()
     
     def close_connection(self):
         try:
@@ -147,6 +152,7 @@ class Client:
             if i not in self.player.guesses and i != "_":
                 self.player.guesses.append(i)
             
+    #def connectToPeer(self, peer_name, peer_socket, )
 
 def main():
     playerList = tk.Listbox()

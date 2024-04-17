@@ -9,6 +9,7 @@ import logging
 import time
 import os
 import sys
+import traceback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from GameLogic import WordPicker, Player, Game
 
@@ -114,11 +115,20 @@ class LobbyServer:
                         player2_socket = self.clients[players[1]]
                         player1_socket.sendall(f"GAME_STARTED: {players[0]}, {players[1]}".encode("utf-8"))
                         player2_socket.sendall(f"GAME_STARTED: {players[0]}, {players[1]}".encode("utf-8"))
-                        time.sleep(3)
-                        self.startGame(players[0], players[1])
+                        #time.sleep(2)
                         self.lobby.remove(players[0])
                         self.lobby.remove(players[1])
                         self.sendLobbyUpdate()
+                        self.startGame(players[0], players[1])
+
+                    if message.startswith("QUIT: "):
+                        names = message.split(": ")[1].split(", ")
+                        logging.info(f"{names[0]} has left the game.")
+                        self.closeAndRemoveClient(names[0], self.clients[names[0]])
+                        self.clients[names[1]].sendall(f"GAME_OVER: {names[1]}".encode("utf-8"))
+                        self.closeAndRemoveClient(names[1], self.clients[names[1]])
+                        self.sendLobbyUpdate()
+                    
                     if not message:
                         # If no data is received, client has disconnected
                         logging.info(f"Client {client_name} disconnected.")
@@ -126,19 +136,24 @@ class LobbyServer:
                 except Exception as e:
                     # Handle exceptions such as client disconnecting abruptly
                     logging.info(f"{client_name} has left the lobby, inside while loop. {e}")
-                    self.serversocket.close()
+                    #self.serversocket.close()
                     break
         except Exception as e:
             logging.error(f"Error handling client: {e}")
         
         finally:
             if client_name in self.lobby:
-                client_socket.close()
-                del self.clients[client_name]
-                self.lobby.remove(client_name)
-                # Notify other clients about the member leaving
+                self.closeAndRemoveClient(client_name, client_socket)
                 self.broadcast(f"{client_name} has left the lobby.\n")
                 self.sendLobbyUpdate()
+
+    def closeAndRemoveClient(self, client_name, client_socket):
+            client_socket.close()
+            del self.clients[client_name]
+            if client_name in self.lobby:
+                self.lobby.remove(client_name)
+            # Notify other clients about the member leaving
+
     def sendLobbyUpdate(self):
         # Send the updated list of players to all clients
         players = self.lobby
@@ -161,12 +176,14 @@ class LobbyServer:
         time.sleep(3)
         while True:
             try:
+                
                 player1_socket.sendall(f"LIVES: {player1.get_lives()}, {player2.get_lives()}".encode("utf-8"))
                 player2_socket.sendall(f"LIVES: {player1.get_lives()}, {player2.get_lives()}".encode("utf-8"))
                 
                 player = game.determineTurn()
                 socket = player.get_socket()
                 message = socket.recv(2048).decode("utf-8")
+
                 if message.startswith("GUESS: "):
                     message = message.split(": ")[1]
                     guessed = game.guess(player, message)
@@ -181,7 +198,18 @@ class LobbyServer:
                     time.sleep(3)
                     player1_socket.sendall(f"GUESSED: {guessed}, {message}".encode("utf-8"))
                     player2_socket.sendall(f"GUESSED: {guessed}, {message}".encode("utf-8"))
+                if message.startswith("QUIT: "):
+                    player1_socket.sendall(f"GAME_OVER: {player.get_name()}".encode("utf-8"))
+                    player2_socket.sendall(f"GAME_OVER: {player.get_name()}".encode("utf-8"))
+                    self.closeAndRemoveClient(player1.get_name(), player1.get_socket())
+                    self.closeAndRemoveClient(player2.get_name(), player2.get_socket())
+                    self.sendLobbyUpdate()
                 if not message:
+                    logging.info(f"{player.get_name()} has left the game.")
+                    # Notify the other player about the game over
+                    other_player = player2 if player == player1 else player1
+                    other_player_socket = other_player.get_socket()
+                    other_player_socket.sendall(f"GAME_OVER: {player.get_name()}".encode("utf-8"))
                     break
             except Exception as e:
                 logging.error(f"Error in game: {e}")
