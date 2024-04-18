@@ -39,6 +39,8 @@ class GameFrame(tk.Frame):
 
         self.guessedLetters = tk.Label(self, font=("Comic Sans", 18))
         self.guessedLetters.pack(pady=10)
+        self.turnText = tk.Label(self, text="It is your turn!", font=("Comic Sans", 18))
+        self.turnText.pack(pady=10)
     
     def backToHome(self):
         if self.master.client.gameLobby[0] == self.master.client.player.name:
@@ -84,6 +86,8 @@ class GameFrame(tk.Frame):
 
     def guessButtonCommand(self):
         # self.game.guess(self.guessEntry.get())
+        self.master.client.send_message('GUESS: ' + self.guessEntry.get())
+        time.sleep(1)
         self.master.client.send_message("GUESS: " + self.guessEntry.get())
         time.sleep(3)
                
@@ -94,6 +98,7 @@ class GameFrame(tk.Frame):
         #self.backButton.config(text="Return to Lobby", command=self.master.showMainframe)
         self.guessArea.config(text=self.master.client.word)
         self.gameFinished = True
+        self.turnText.config(text="Thanks for playing!")
 
     def clearTexts(self):
         self.guessArea.config(text="")
@@ -101,11 +106,18 @@ class GameFrame(tk.Frame):
         self.guessedLetters.config(text="")
         self.guessEntry.config(state=tk.NORMAL)
         self.guessEntry.delete(0, 'end')
+        self.turnText.config(text="")
     
     def clearGameAndReturn(self):
         self.hideMen()
         self.master.resetGameFrame()
         self.master.showLobbyFrame()
+
+    def updateTurnText(self):
+        if self.master.client.turn == True:
+            self.turnText.config(text="It is your turn!")
+        else:
+            self.turnText.config(text="Wait until it is your turn...")
 
     def updateGuessedLetters(self):
         guessed_letters = self.master.client.player.guesses
@@ -133,10 +145,3 @@ class GameFrame(tk.Frame):
                 self.guessButton.config(state=tk.DISABLED)
         else:
             self.guessButton.config(state=tk.DISABLED)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    game_frame = GameFrame(root)
-    game_frame.pack()
-    game_frame.establishBoard()
-    root.mainloop()

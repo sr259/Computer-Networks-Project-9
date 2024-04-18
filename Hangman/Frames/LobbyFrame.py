@@ -17,6 +17,8 @@ class LobbyFrame(tk.Frame):
         self.playerList = tk.Listbox(self, width=50)
         self.playerList.pack(pady=10)
         self.playerList.bind("<<ListboxSelect>>", self.on_player_select)
+        self.welcomeText = tk.Label(self, font=("Comic Sans", 18))
+        self.welcomeText.pack(pady=10)
 
     def addPlayer(self, player):
         self.master.players.append(player)
@@ -33,6 +35,9 @@ class LobbyFrame(tk.Frame):
                 self.joinGameButton.config(state=tk.DISABLED)
         else:
             self.joinGameButton.config(state=tk.DISABLED)
+    
+    def establishWelcomeText(self, name):
+        self.welcomeText.config(text=f"Welcome to the lobby, {name}! ")
     
     
     

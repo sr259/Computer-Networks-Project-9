@@ -46,6 +46,7 @@ class MainScreen(tk.Tk):
         self.main_frame.pack_forget()
         self.instantiateClient()
         self.lobby_frame.pack(fill='both', expand=True)
+        self.lobby_frame.establishWelcomeText(self.client.player.get_name())
         self.game_frame.pack_forget()
         self.game_frame.hideMen()
     

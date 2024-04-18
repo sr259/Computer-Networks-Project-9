@@ -69,7 +69,7 @@ class Client:
 
     def receive_message(self):
         try:
-            while self.isConnected and counter < 4:
+            while self.isConnected:
                 logging.info("Waiting for message...")
                 message = self.client_socket.recv(2048).decode("utf-8")
                 if message.startswith("GET_PLAYERS: "):
@@ -87,8 +87,10 @@ class Client:
                     self.isInGame = True
                     if self.player.get_name() == self.gameLobby[0]:
                         self.turn = True
+                        self.gameFrame.turnText.config(text = "It is your turn!")
                     else:
                         self.turn = False
+                        self.gameFrame.turnText.config(text = "Wait until it is your turn...")
                 elif message.startswith("WORD: "):
                     self.word = message.split(": ")[1]
                     logging.info(f"Word: {self.word}")
@@ -100,6 +102,7 @@ class Client:
                     self.gameFrame.establishBoard()
                     logging.info(f"Guessed: {self.guessed}")
                     self.turn = not self.turn
+                    self.gameFrame.updateTurnText()
                 elif message.startswith("LIVES: "):
                     asString = message.split(": ")[1].split(", ")
                     self.lives = [int(asString[0]), int(asString[1])]
@@ -123,7 +126,6 @@ class Client:
     
     def send_message(self, message):
         try:
-            logging.info("Sending message: " +message)
             self.client_socket.sendall(message.encode("utf-8"))
         except Exception as e:
             logging.error(f"Error sending message: {e}")

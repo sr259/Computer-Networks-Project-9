@@ -119,8 +119,7 @@ class LobbyServer:
                         self.lobby.remove(players[0])
                         self.lobby.remove(players[1])
                         self.sendLobbyUpdate()
-                        self.startGame(players[0], players[1])
-
+                        threading.Thread(target = self.startGame, args = (players[0], players[1],)).start()
                     if message.startswith("QUIT: "):
                         names = message.split(": ")[1].split(", ")
                         logging.info(f"{names[0]} has left the game.")
@@ -128,7 +127,6 @@ class LobbyServer:
                         self.clients[names[1]].sendall(f"GAME_OVER: {names[1]}".encode("utf-8"))
                         self.closeAndRemoveClient(names[1], self.clients[names[1]])
                         self.sendLobbyUpdate()
-                    
                     if not message:
                         # If no data is received, client has disconnected
                         logging.info(f"Client {client_name} disconnected.")
@@ -164,16 +162,17 @@ class LobbyServer:
     def startGame(self, name1, name2):
         # Start a game between two players
         picker = WordPicker.WordPicker()
-        #word = picker.pick_word()
-        word = "banana"
+        word = picker.pick_word()
+        #word = "banana"
         player1_socket = self.clients[name1]
         player2_socket = self.clients[name2]
         player1 = Player.Player(name1, player1_socket)
         player2 = Player.Player(name2, player2_socket)
         game = Game.Game(player1, player2, word)
+        time.sleep(1)
         player1_socket.sendall(f"WORD: {word}".encode("utf-8"))
         player2_socket.sendall(f"WORD: {word}".encode("utf-8"))
-        time.sleep(3)
+        time.sleep(1)
         while True:
             try:
                 
