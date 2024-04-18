@@ -72,15 +72,7 @@ class MainScreen(tk.Tk):
         self.client.send_message("CONNECT_TO_GAME: " + self.client.player.name + ", " + self.lobby_frame.playerList.get(tk.ACTIVE))  
         
 if __name__ == "__main__":
-    yorNo = input("Are you the server? (y/n): ")
-    if yorNo == "y":
-        temp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        temp_socket.connect(("8.8.8.8", 80))  # Connect to a public DNS server
-        server_ip_address = temp_socket.getsockname()[0]  # Get the local IP address
-        temp_socket.close()
-        port_num = 5550
-    else:
-        server_ip_address = input("Please submit the server IP address: ")
-        port_num = input("Please submit the server port number: ")
+    server_ip_address = input("Please submit the server IP address: ")
+    port_num = input("Please submit the server port number: ")
     app = MainScreen(server_ip_address, int(port_num))
     app.mainloop()
