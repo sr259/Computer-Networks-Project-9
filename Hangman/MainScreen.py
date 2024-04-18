@@ -1,7 +1,7 @@
-import customtkinter as ctk
 import tkinter as tk
 import os
 import sys
+import socket
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Frames.MainFrame import MainFrame
 from Frames.LobbyFrame import LobbyFrame
@@ -13,14 +13,16 @@ from ClientServer import Client
 import time
 import threading
 class MainScreen(tk.Tk):
-    def __init__(self):
+    def __init__(self, server_ip_address, server_port_num):
         super().__init__()
         self.name = "Player"
         self.players = None
+        self.server_ip_address = server_ip_address
+        self.server_port_num = server_port_num
         self.main_frame = MainFrame(self)
         self.lobby_frame = LobbyFrame(self)
         self.game_frame = GameFrame(self)
-        self.client = Client.Client(Player.Player(self.name), self.main_frame, self.lobby_frame, self.game_frame)
+        self.client = Client.Client(Player.Player(self.name),  self.main_frame, self.lobby_frame, self.game_frame, self.server_ip_address, self.server_port_num)
 
         self.main_frame.joinLobbyButton['command'] = self.showLobbyFrame
         self.lobby_frame.backButton['command'] = self.showMainframe
@@ -35,7 +37,7 @@ class MainScreen(tk.Tk):
     def showMainframe(self):
         if self.client.client_socket:
             self.client.close_connection()
-        self.client = Client.Client(Player.Player(self.name), self.main_frame, self.lobby_frame, self.game_frame)
+        self.client = Client.Client(Player.Player(self.name), self.main_frame, self.lobby_frame, self.game_frame, self.server_ip_address, self.server_port_num )
         self.main_frame.pack(fill='both', expand=True)
         self.lobby_frame.pack_forget()
         self.game_frame.pack_forget()
@@ -70,5 +72,15 @@ class MainScreen(tk.Tk):
         self.client.send_message("CONNECT_TO_GAME: " + self.client.player.name + ", " + self.lobby_frame.playerList.get(tk.ACTIVE))  
         
 if __name__ == "__main__":
-    app = MainScreen()
+    yorNo = input("Are you the server? (y/n): ")
+    if yorNo == "y":
+        temp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        temp_socket.connect(("8.8.8.8", 80))  # Connect to a public DNS server
+        server_ip_address = temp_socket.getsockname()[0]  # Get the local IP address
+        temp_socket.close()
+        port_num = 5550
+    else:
+        server_ip_address = input("Please submit the server IP address: ")
+        port_num = input("Please submit the server port number: ")
+    app = MainScreen(server_ip_address, int(port_num))
     app.mainloop()
