@@ -14,8 +14,8 @@ logging.basicConfig(level=logging.INFO, format = "%(asctime)s: %(message)s", str
 
 
 class Client:
-    def __init__(self, player, main = None, lobby = None, game = None, server_port=5550):
-        self.SERVER_HOST = self.get_server_ip_address()
+    def __init__(self, player, main , lobby, game, server_ip, server_port):
+        self.SERVER_HOST = server_ip
         self.SERVER_PORT = server_port
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.player = player
@@ -111,12 +111,12 @@ class Client:
                 elif message.startswith("GAME_OVER: "):
                     winner = message.split(": ")[1]
                     logging.info(f"Game over. Winner: {winner}")
-                    self.word = ""
                     self.guessed = []
                     self.turn = False
                     self.lives = []
                     self.isInGame = False
                     self.gameFrame.gameOver(winner)
+                    self.word = ""
         except KeyboardInterrupt:
             logging.info("Closing connection...")
             self.client_socket.close()
