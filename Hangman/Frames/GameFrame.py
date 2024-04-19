@@ -16,7 +16,6 @@ class GameFrame(tk.Frame):
         self.player2Man = Man.Man(self.canvas2, "red", .6)
 
         super().__init__(master)
-        self.label = tk.Label(self, text="Game Screen", font=("Comic Sans", 18))
         self.backButton = tk.Button(self, text="Back to Home Screen", command=self.backToHome)
         self.backButton.pack(pady=10)
 
@@ -37,9 +36,9 @@ class GameFrame(tk.Frame):
         self.guessButton = tk.Button(self, text="Guess", command=self.guessButtonCommand, state=tk.DISABLED)
         self.guessButton.pack(pady=10)
 
-        self.guessedLetters = tk.Label(self, font=("Comic Sans", 18))
+        self.guessedLetters = tk.Label(self, font=("Comic Sans", 12))
         self.guessedLetters.pack(pady=10)
-        self.turnText = tk.Label(self, text="It is your turn!", font=("Comic Sans", 18))
+        self.turnText = tk.Label(self, text=f"It is your turn!", font=("Comic Sans", 12))
         self.turnText.pack(pady=10)
     
     def backToHome(self):
@@ -80,9 +79,12 @@ class GameFrame(tk.Frame):
             self.guessArea.config(text=self.dashes)
 
     def updateLives(self):
-        self.player1Man.draw(6 - self.master.client.lives[0])
-        self.player2Man.draw(6 - self.master.client.lives[1])
-        self.livesLabel.config(text="Lives: " + str(self.master.client.lives[0]) + ", " + str(self.master.client.lives[1]))
+        p1Lives = self.master.client.lives.get(self.master.client.gameLobby[0])
+        p2Lives = self.master.client.lives.get(self.master.client.gameLobby[1])
+
+        self.player1Man.draw(6 - p1Lives)
+        self.player2Man.draw(6 - p2Lives)
+        self.livesLabel.config(text="Lives: " + str(p1Lives) + ", " + str(p2Lives))
 
     def guessButtonCommand(self):
         # self.game.guess(self.guessEntry.get())
@@ -90,6 +92,7 @@ class GameFrame(tk.Frame):
         time.sleep(1)
         self.master.client.send_message("GUESS: " + self.guessEntry.get())
         time.sleep(3)
+        self.guessButton.config(state=tk.DISABLED)
                
     def gameOver(self,winner):
         self.guessButton.config(state="disabled")
@@ -97,8 +100,10 @@ class GameFrame(tk.Frame):
         self.livesLabel.config(text="Game Over, " + winner + " wins!")
         #self.backButton.config(text="Return to Lobby", command=self.master.showMainframe)
         self.guessArea.config(text=self.master.client.word)
+
+        self.turnText.config(text=f"Thanks for playing!")
         self.gameFinished = True
-        self.turnText.config(text="Thanks for playing!")
+
 
     def clearTexts(self):
         self.guessArea.config(text="")
@@ -114,27 +119,34 @@ class GameFrame(tk.Frame):
         self.master.showLobbyFrame()
 
     def updateTurnText(self):
-        if self.master.client.turn == True:
-            self.turnText.config(text="It is your turn!")
-        else:
-            self.turnText.config(text="Wait until it is your turn...")
+
+        lives = self.master.client.lives
+        name = self.master.client.player.get_name()
+        otherName = self.master.client.gameLobby[0] if self.master.client.gameLobby[1] == name else self.master.client.gameLobby[1]
+        if self.master.client.turn == True and lives.get(name) > 0 or self.master.client.turn == False and lives.get(otherName) == 0:
+            self.turnText.config(text=f"It is your turn, {name}!")
+        elif self.master.client.turn == True and lives.get(name) == 0 or self.master.client.turn == False and lives.get(name) == 0:
+            self.turnText.config(text=f"You have no more lives {name},\nwait for the other player to finsih guessing.")
+        elif self.master.client.turn == False and lives.get(otherName) > 0:
+            self.turnText.config(text=f"Wait until it is your turn, {name}...")
+
 
     def updateGuessedLetters(self):
         guessed_letters = self.master.client.player.guesses
         returnWord = ""
         for letter in guessed_letters:
             returnWord += letter + " "
-        self.guessedLetters.config(text="Guessed Letters: " + returnWord)
+        self.guessedLetters.config(text="Guessed Letters:\n" + returnWord)
 
     def validateEntry(self, event):
         # Get the input from the entry box
         input_text = self.guessEntry.get()
             # Check if it's the player's turn
-        if self.master.client.turn == False:
+        if self.master.client.turn == False or self.master.client.lives.get(self.master.client.player.get_name()) == 0:
             self.guessButton.config(state=tk.DISABLED)
             return
         # Check if the input is empty
-        if input_text == "":
+        if input_text == "" or input_text in self.master.client.player.guesses:
             self.guessButton.config(state=tk.DISABLED)
             return
         if len(input_text) == 1 or len(input_text) == len(self.master.client.word):

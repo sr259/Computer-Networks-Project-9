@@ -10,15 +10,17 @@ import time
 import os
 import sys
 import traceback
+import random
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from GameLogic import WordPicker, Player, Game
 
 logging.basicConfig(level=logging.INFO, format = "%(asctime)s: %(message)s", stream=sys.stdout)
 class LobbyServer:
-    def __init__(self, port = 5550):
+    def __init__(self, port = 5553):
         self.PORT = port       
         self.MAX_CLIENTS = 6
         self.HOST = self.get_ip_address()
+        self.shutdown_timer = None
         self.lobby = []    # List of clients in the lobby
         self.clients = {}  # Dictionary to map client names to their connections
         self.serversocket = None
@@ -28,7 +30,7 @@ class LobbyServer:
     def run(self):    
         # Create a socket object
         self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
+
         # Bind the socket to the port
         try:
             self.serversocket.bind((self.HOST,self.PORT))
@@ -39,7 +41,8 @@ class LobbyServer:
         # Listen for a connection
         self.serversocket.listen(self.MAX_CLIENTS)
         logging.info(f"Server listening to {self.HOST}:{self.PORT}...")
-
+        self.shutdown_timer = threading.Timer(30, self.check_shutdown)
+        self.shutdown_timer.start()
         def signal_handler(sig, frame):
             # Signal handler for Ctrl+C
             logging.info("Ctrl+C detected. Shutting down the server...")
@@ -60,7 +63,12 @@ class LobbyServer:
                 # Start a new thread to handle client communication
                 threading.Thread(target = self.handle_client, args = (client_socket,)).start()
         except Exception as e:
-            logging.error(f"Error accepting client connection: {e}") 
+            if not self.clients:
+                logging.info("No clients connected. Shutting down the server...")
+                self.serversocket.close()
+                sys.exit()
+            else:
+                logging.error(f"Error accepting client connection") 
 
     def get_ip_address(self):
         try:
@@ -84,17 +92,22 @@ class LobbyServer:
     def handle_client(self, client_socket):
         #Handle communication with a client.
         try:
+            canContinue = True
             # Receive the client's name
             client_name = client_socket.recv(2048).decode("utf-8")
-            logging.info(f"{client_name} joined the lobby.")
-
             # Add the client to the list of clients and lobby
+            while client_name in self.clients:
+                # If the client name already exists, append a random number to it
+                client_name += str(random.randint(1, 10))
             self.clients[client_name] = client_socket
             self.lobby.append(client_name)
+            client_socket.sendall(("NAME: "+client_name).encode("utf-8"))
+            time.sleep(.5)
             # Notify other clients about the new member
             self.sendLobbyUpdate()
+            time.sleep(.5)
             self.broadcast(f"{client_name} joined the lobby.\n")            
-            while True:
+            while canContinue:
                 try:
                     # logging.info(f"Waiting for message from {client_name}...")
                     message = ''
@@ -131,10 +144,11 @@ class LobbyServer:
                         # If no data is received, client has disconnected
                         logging.info(f"Client {client_name} disconnected.")
                         break
-                except Exception as e:
+                except socket.error as e:
                     # Handle exceptions such as client disconnecting abruptly
-                    logging.info(f"{client_name} has left the lobby, inside while loop. {e}")
-                    #self.serversocket.close()
+                    if e.errno == 10038 or e.errno == 10054:
+                        logging.info(f"{client_name} has left the lobby, inside while loop.")
+                        break
                     break
         except Exception as e:
             logging.error(f"Error handling client: {e}")
@@ -180,8 +194,9 @@ class LobbyServer:
                 player2_socket.sendall(f"LIVES: {player1.get_lives()}, {player2.get_lives()}".encode("utf-8"))
                 
                 player = game.determineTurn()
-                socket = player.get_socket()
-                message = socket.recv(2048).decode("utf-8")
+                logging.info(f"{player.get_name()}'s turn.")
+                playerSocket = player.get_socket()
+                message = playerSocket.recv(2048).decode("utf-8")
 
                 if message.startswith("GUESS: "):
                     message = message.split(": ")[1]
@@ -189,8 +204,14 @@ class LobbyServer:
                     isOver = game.determineGameOver()
                     if isOver:
                         winner = game.getWinner()
-                        player1_socket.sendall(f"GAME_OVER: {winner.get_name()}".encode("utf-8"))
-                        player2_socket.sendall(f"GAME_OVER: {winner.get_name()}".encode("utf-8"))
+                        
+                        if winner == "No one":
+                            winnerStr = "No one"
+                        else: 
+                            winnerStr = winner.get_name()
+                        logging.info(f"Game over. Winner: {winnerStr}")
+                        player1_socket.sendall(f"GAME_OVER: {winnerStr}".encode("utf-8"))
+                        player2_socket.sendall(f"GAME_OVER: {winnerStr}".encode("utf-8"))
                         break
                     guessed = "".join(guessed)
                     logging.info(f"{player.get_name()}'s Guess: {message}")
@@ -210,12 +231,21 @@ class LobbyServer:
                     other_player_socket = other_player.get_socket()
                     other_player_socket.sendall(f"GAME_OVER: {player.get_name()}".encode("utf-8"))
                     break
-            except Exception as e:
-                logging.error(f"Error in game: {e}")
+            except socket.error as e:
+                if e.errno == 10038 or e.errno == 10054:
+                    logging.info(f"{player.get_name()} has left the game.")
                 break
-        #logging.info(f"Game started between {player1.get_name()} and {player2.get_name()}.")
-
-
+    
+    def check_shutdown(self):
+        if not self.clients:
+            # No clients connected, shut down the server
+            logging.info("No clients connected. Shutting down the server...")
+            self.serversocket.close()
+            sys.exit()
+        else:
+            # Reset the timer for the next check
+            self.shutdown_timer = threading.Timer(60, self.check_shutdown)
+            self.shutdown_timer.start()
 
 
 if __name__ == "__main__":
