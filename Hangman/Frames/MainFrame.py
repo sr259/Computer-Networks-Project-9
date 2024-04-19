@@ -21,7 +21,7 @@ class MainFrame(tk.Frame):
 
     def check_name_entry(self, event):
         # Check if the nameInput entry is empty
-        if self.nameInput.get().strip() == "":
+        if self.nameInput.get().strip() == "" or self.nameInput.get() in self.master.client.players:
             self.joinLobbyButton.config(state=tk.DISABLED)  # Disable playButton
         else:
             self.joinLobbyButton.config(state=tk.NORMAL)   # Enable playButton

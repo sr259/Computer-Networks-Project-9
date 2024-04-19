@@ -41,6 +41,8 @@ class Game:
                         self.guessed[index] = input
                 else:
                     player.lose_life()
+            if list(self.word) == self.guessed:
+                return self.guessed
             self.switch_turn()
             return self.guessed
 
@@ -55,10 +57,12 @@ class Game:
         if self.player1Turn:
             if self.player1.lives == 0:
                 self.switch_turn()
+                return self.player2
             return self.player1
-        else:
+        elif not self.player1Turn:
             if self.player2.lives == 0:
                 self.switch_turn()
+                return self.player1
             return self.player2
         
     def getWinner(self):

@@ -45,10 +45,10 @@ class MainScreen(tk.Tk):
 
 
     def showLobbyFrame(self, name= "Player"):
+        self.main_frame.label.config(text = "Welcome to Hangman!")
         self.main_frame.pack_forget()
         self.instantiateClient()
         self.lobby_frame.pack(fill='both', expand=True)
-        self.lobby_frame.establishWelcomeText(self.client.player.get_name())
         self.game_frame.pack_forget()
         self.game_frame.hideMen()
     
@@ -69,16 +69,22 @@ class MainScreen(tk.Tk):
         self.client.connect_to_server()
     
     def joinGameWithPlayer(self):
-        self.client.send_message("CONNECT_TO_GAME: " + self.client.player.name + ", " + self.lobby_frame.playerList.get(tk.ACTIVE))  
+        self.client.send_message("CONNECT_TO_GAME: " + self.client.player.name + ", " + self.lobby_frame.playerList.get(tk.ACTIVE))
+        self.game_frame.gameFinished = False
         
 if __name__ == "__main__":
-    yorNo = input("Are you the server? (y/n): ")
+    yorNo = input("Are you running the server on your local machine? (y/n): ")
     if yorNo == "y":
-        temp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        temp_socket.connect(("8.8.8.8", 80))  # Connect to a public DNS server
-        server_ip_address = temp_socket.getsockname()[0]  # Get the local IP address
-        temp_socket.close()
-        port_num = 5550
+        try:
+            # Create a temporary socket to retrieve the IP address
+            temp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            temp_socket.connect(("8.8.8.8", 80))  # Connect to a public DNS server
+            server_ip_address = temp_socket.getsockname()[0]  # Get the local IP address
+            temp_socket.close()
+            port_num = input("Please submit the server port number: ")
+        except socket.error as e:
+            print(f"Error retrieving server IP address: {e}")
+        
     else:
         server_ip_address = input("Please submit the server IP address: ")
         port_num = input("Please submit the server port number: ")
