@@ -41,8 +41,6 @@ class LobbyServer:
         # Listen for a connection
         self.serversocket.listen(self.MAX_CLIENTS)
         logging.info(f"Server listening to {self.HOST}:{self.PORT}...")
-        self.shutdown_timer = threading.Timer(30, self.check_shutdown)
-        self.shutdown_timer.start()
         def signal_handler(sig, frame):
             # Signal handler for Ctrl+C
             logging.info("Ctrl+C detected. Shutting down the server...")
@@ -59,7 +57,7 @@ class LobbyServer:
                 client_socket, client_addr = self.serversocket.accept()
                 logging.info(f"Connection established with {client_addr}")  
 
-                time.sleep(1)
+                #time.sleep(1)
                 # Start a new thread to handle client communication
                 threading.Thread(target = self.handle_client, args = (client_socket,)).start()
         except Exception as e:
@@ -128,7 +126,6 @@ class LobbyServer:
                         player2_socket = self.clients[players[1]]
                         player1_socket.sendall(f"GAME_STARTED: {players[0]}, {players[1]}".encode("utf-8"))
                         player2_socket.sendall(f"GAME_STARTED: {players[0]}, {players[1]}".encode("utf-8"))
-                        #time.sleep(2)
                         self.lobby.remove(players[0])
                         self.lobby.remove(players[1])
                         self.sendLobbyUpdate()
@@ -147,7 +144,7 @@ class LobbyServer:
                 except socket.error as e:
                     # Handle exceptions such as client disconnecting abruptly
                     if e.errno == 10038 or e.errno == 10054:
-                        logging.info(f"{client_name} has left the lobby, inside while loop.")
+                        logging.info(f"{client_name} has left the lobby")
                         break
                     break
         except Exception as e:
@@ -165,6 +162,7 @@ class LobbyServer:
             if client_name in self.lobby:
                 self.lobby.remove(client_name)
             # Notify other clients about the member leaving
+            self.check_shutdown()
 
     def sendLobbyUpdate(self):
         # Send the updated list of players to all clients
@@ -194,7 +192,6 @@ class LobbyServer:
                 player2_socket.sendall(f"LIVES: {player1.get_lives()}, {player2.get_lives()}".encode("utf-8"))
                 
                 player = game.determineTurn()
-                logging.info(f"{player.get_name()}'s turn.")
                 playerSocket = player.get_socket()
                 message = playerSocket.recv(2048).decode("utf-8")
 
@@ -209,13 +206,13 @@ class LobbyServer:
                             winnerStr = "No one"
                         else: 
                             winnerStr = winner.get_name()
-                        logging.info(f"Game over. Winner: {winnerStr}")
+                        logging.info(f"Game over. Winner between {player1.get_name()} and {player2.get_name()}: {winnerStr}")
                         player1_socket.sendall(f"GAME_OVER: {winnerStr}".encode("utf-8"))
                         player2_socket.sendall(f"GAME_OVER: {winnerStr}".encode("utf-8"))
                         break
                     guessed = "".join(guessed)
                     logging.info(f"{player.get_name()}'s Guess: {message}")
-                    time.sleep(3)
+                    #time.sleep(3)
                     player1_socket.sendall(f"GUESSED: {guessed}, {message}".encode("utf-8"))
                     player2_socket.sendall(f"GUESSED: {guessed}, {message}".encode("utf-8"))
                 if message.startswith("QUIT: "):
@@ -225,8 +222,6 @@ class LobbyServer:
                     self.closeAndRemoveClient(player2.get_name(), player2.get_socket())
                     self.sendLobbyUpdate()
                 if not message:
-                    logging.info(f"{player.get_name()} has left the game.")
-                    # Notify the other player about the game over
                     other_player = player2 if player == player1 else player1
                     other_player_socket = other_player.get_socket()
                     other_player_socket.sendall(f"GAME_OVER: {player.get_name()}".encode("utf-8"))
@@ -236,16 +231,19 @@ class LobbyServer:
                     logging.info(f"{player.get_name()} has left the game.")
                 break
     
-    def check_shutdown(self):
+    def check_shutdown(self, timeout=30):
         if not self.clients:
-            # No clients connected, shut down the server
-            logging.info("No clients connected. Shutting down the server...")
+            # No clients connected, start a timer for shutdown
+            logging.info(f"No clients connected. Starting {timeout}s shutdown timer...")
+            self.shutdown_timer = threading.Timer(timeout, self.shutdown_server)  # Adjust the time period as needed
+            self.shutdown_timer.start()
+
+    def shutdown_server(self):
+        if not self.clients:
+            # No clients joined within the timeout period, shutting down the server
+            logging.info("No clients joined within the timeout period. Shutting down the server...")
             self.serversocket.close()
             sys.exit()
-        else:
-            # Reset the timer for the next check
-            self.shutdown_timer = threading.Timer(60, self.check_shutdown)
-            self.shutdown_timer.start()
 
 
 if __name__ == "__main__":

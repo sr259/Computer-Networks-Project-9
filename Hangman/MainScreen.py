@@ -27,7 +27,6 @@ class MainScreen(tk.Tk):
         self.main_frame.joinLobbyButton['command'] = self.showLobbyFrame
         self.lobby_frame.backButton['command'] = self.showMainframe
         self.lobby_frame.joinGameButton['command'] = self.joinGameWithPlayer
-        #self.game_frame.backButton['command'] = self.showMainframe
 
         self.title("Hangman Game")
         self.geometry("600x400")
@@ -85,8 +84,11 @@ if __name__ == "__main__":
         except socket.error as e:
             print(f"Error retrieving server IP address: {e}")
         
-    else:
+    elif yorNo == "n":
         server_ip_address = input("Please submit the server IP address: ")
         port_num = input("Please submit the server port number: ")
+    else:
+        print("Invalid input")
+        exit()
     app = MainScreen(server_ip_address, int(port_num))
     app.mainloop()

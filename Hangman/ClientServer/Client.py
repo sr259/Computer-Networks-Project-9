@@ -100,7 +100,6 @@ class Client:
                 
                 elif message.startswith("WORD: "):
                     self.word = message.split(": ")[1]
-                    logging.info(f"Word: {self.word}")
                     self.gameFrame.updateWord()
                 
                 elif message.startswith("GUESSED: "):
@@ -114,7 +113,6 @@ class Client:
                 
                 elif message.startswith("LIVES: "):
                     asString = message.split(": ")[1].split(", ")
-
                     self.lives = {self.gameLobby[0]: int(asString[0]), self.gameLobby[1]: int(asString[1])}
                     self.turn = self.determineTurn()
                     logging.info("Is it my turn? : " + str(self.turn))
@@ -122,7 +120,6 @@ class Client:
                     self.gameFrame.updateLives()
                     self.gameFrame.updateTurnText()
 
-                        
                 elif message.startswith("GAME_OVER: "):
                     winner = message.split(": ")[1]
                     logging.info(f"Game over. Winner: {winner}")
@@ -161,7 +158,6 @@ class Client:
     
     def close_connection(self):
         try:
-            #logging.info("Closing connection...")
             self.client_socket.close()
             self.isConnected = False
         except Exception as e:
@@ -189,7 +185,6 @@ class Client:
             if self.lives.get(self.player.get_name()) == 0:
                 return False
             return True
-    #def connectToPeer(self, peer_name, peer_socket, )
 
 def main():
     playerList = tk.Listbox()

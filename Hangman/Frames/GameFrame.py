@@ -89,9 +89,9 @@ class GameFrame(tk.Frame):
     def guessButtonCommand(self):
         # self.game.guess(self.guessEntry.get())
         self.master.client.send_message('GUESS: ' + self.guessEntry.get())
-        time.sleep(1)
+        time.sleep(.1)
         self.master.client.send_message("GUESS: " + self.guessEntry.get())
-        time.sleep(3)
+        time.sleep(.1)
         self.guessButton.config(state=tk.DISABLED)
                
     def gameOver(self,winner):
